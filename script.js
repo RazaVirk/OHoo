@@ -3,9 +3,6 @@
 
 // ===== CONSTANTS =====
 const COINS_PER_PKR = 4500;
-const MIN_WITHDRAW_PKR = 200;
-const MAX_WITHDRAW_PKR = 2000;
-const MIN_OFFLINE_COINS = 10000;
 const MAX_ENERGY = 5000;
 const ENERGY_PER_TAP = 1;
 const ENERGY_REGEN_PER_SEC = 1;
@@ -38,9 +35,6 @@ let autoAdInterval = null;
 let currentChat = "global";
 let currentLeaderboard = "coins";
 let avatarFilter = "all";
-let currentWithdrawFilter = "all";
-let currentEditingUser = null;
-let confirmCallback = null;
 let currentPayment = null;
 
 let gameState = {
@@ -381,10 +375,25 @@ function toggleMusic() {
     saveUser();
 }
 
-function showSignup() { document.getElementById("login-form").classList.add("hidden"); document.getElementById("signup-form").classList.remove("hidden"); }
-function showLogin() { document.getElementById("signup-form").classList.add("hidden"); document.getElementById("login-form").classList.remove("hidden"); }
-function showTerms() { const m = document.getElementById("terms-modal"); if (m) m.classList.remove("hidden"); }
-function closeTerms() { const m = document.getElementById("terms-modal"); if (m) m.classList.add("hidden"); }
+function showSignup() {
+    document.getElementById("login-form").classList.add("hidden");
+    document.getElementById("signup-form").classList.remove("hidden");
+}
+
+function showLogin() {
+    document.getElementById("signup-form").classList.add("hidden");
+    document.getElementById("login-form").classList.remove("hidden");
+}
+
+function showTerms() {
+    const m = document.getElementById("terms-modal");
+    if (m) m.classList.remove("hidden");
+}
+
+function closeTerms() {
+    const m = document.getElementById("terms-modal");
+    if (m) m.classList.add("hidden");
+}
 
 function switchTab(tab) {
     document.querySelectorAll(".tab-view").forEach(t => t.classList.remove("active"));
@@ -413,26 +422,36 @@ function switchTab(tab) {
 function updateUI() {
     if (!currentUser) return;
     const pkr = (gameState.coins / COINS_PER_PKR).toFixed(2);
-    document.getElementById("header-balance").textContent = formatNum(gameState.coins);
-    document.getElementById("header-pkr").textContent = pkr;
-    document.getElementById("header-energy").textContent = `${Math.floor(gameState.energy)} / ${gameState.maxEnergy}`;
-    document.getElementById("streak-days").textContent = gameState.streak;
-    document.getElementById("level-display").textContent = gameState.level;
-    document.getElementById("tap-coins-display").textContent = `${formatNum(gameState.coins)} COINS`;
-    document.getElementById("tap-pkr-display").textContent = pkr;
-    document.getElementById("profile-coins").textContent = formatNum(gameState.coins);
-    document.getElementById("profile-pkr").textContent = pkr;
-    document.getElementById("profile-taps").textContent = formatNum(gameState.taps);
-    document.getElementById("profile-autobot").textContent = gameState.autobotLevel;
-    document.getElementById("refs-total").textContent = gameState.referrals;
-    document.getElementById("refs-active").textContent = gameState.activeReferrals;
-    document.getElementById("refs-earned").textContent = formatNum(gameState.referralEarned);
-    const perTap = calculateTapValue();
+    const els = {
+        "header-balance": formatNum(gameState.coins),
+        "header-pkr": pkr,
+        "header-energy": `${Math.floor(gameState.energy)} / ${gameState.maxEnergy}`,
+        "streak-days": gameState.streak,
+        "level-display": gameState.level,
+        "tap-coins-display": `${formatNum(gameState.coins)} COINS`,
+        "tap-pkr-display": pkr,
+        "profile-coins": formatNum(gameState.coins),
+        "profile-pkr": pkr,
+        "profile-taps": formatNum(gameState.taps),
+        "profile-autobot": gameState.autobotLevel,
+        "refs-total": gameState.referrals,
+        "refs-active": gameState.activeReferrals,
+        "refs-earned": formatNum(gameState.referralEarned)
+    };
+    Object.keys(els).forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = els[id];
+    });
     const perTapEl = document.getElementById("per-tap-value");
-    if (perTapEl) perTapEl.textContent = formatNum(perTap);
+    if (perTapEl) perTapEl.textContent = formatNum(calculateTapValue());
     if (gameState.prestige > 0) {
         const pb = document.getElementById("prestige-badge");
-        if (pb) { pb.classList.remove("hidden"); pb.classList.add("flex"); document.getElementById("prestige-level").textContent = gameState.prestige; }
+        if (pb) {
+            pb.classList.remove("hidden");
+            pb.classList.add("flex");
+            const pl = document.getElementById("prestige-level");
+            if (pl) pl.textContent = gameState.prestige;
+        }
     }
 }
 
@@ -597,7 +616,7 @@ function activatePowerUp(type) {
     saveUser(); updateUI();
 }
 
-// ===== DAILY BONUS =====
+// ===== DAILY =====
 function claimDailyBonus() {
     if (gameState.dailyBonusClaimed) return showToast("Aaj ka bonus claim ho chuka!", "warning");
     const bonus = 1000 + (gameState.streak - 1) * 500;
@@ -609,7 +628,7 @@ function claimDailyBonus() {
 }
 
 function watchAd(type) {
-    showToast("Ad loading... (simulated)", "info");
+    showToast("Ad loading...", "info");
     setTimeout(() => {
         if (type === "energy") { gameState.energy = gameState.maxEnergy; showToast("Energy full!", "success"); }
         else if (type === "coins") { addCoins(5000, true); showToast("+5000 coins!", "success"); }
@@ -665,8 +684,10 @@ function updateSpinTimer() {
     const now = Date.now();
     const last = gameState.lastSpinTime || 0;
     const next = last + SPIN_COOLDOWN;
-    if (now >= next) { el.textContent = "Ready!"; el.className = "text-[10px] text-emerald-400 font-bold mt-1"; }
-    else {
+    if (now >= next) {
+        el.textContent = "Ready!";
+        el.className = "text-[10px] text-emerald-400 font-bold mt-1";
+    } else {
         const left = next - now;
         const h = Math.floor(left / 3600000);
         const m = Math.floor((left % 3600000) / 60000);
@@ -691,13 +712,18 @@ function openScratchModal() {
     addCoins(SCRATCH_REWARD, true);
     showToast(`🎉 You won ${formatNum(SCRATCH_REWARD)} coins!`, "success");
     confetti({ particleCount: 200, spread: 90, origin: { y: 0.6 } });
-    document.getElementById("scratch-prize-text").textContent = `+${formatNum(SCRATCH_REWARD)} COINS`;
-    document.getElementById("scratch-modal").classList.remove("hidden");
+    const prizeEl = document.getElementById("scratch-prize-text");
+    if (prizeEl) prizeEl.textContent = `+${formatNum(SCRATCH_REWARD)} COINS`;
+    const modal = document.getElementById("scratch-modal");
+    if (modal) modal.classList.remove("hidden");
     initScratchCanvas();
     saveUser(); updateScratchTimer(); updateUI();
 }
 
-function closeScratchModal() { document.getElementById("scratch-modal").classList.add("hidden"); }
+function closeScratchModal() {
+    const m = document.getElementById("scratch-modal");
+    if (m) m.classList.add("hidden");
+}
 
 function updateScratchTimer() {
     const el = document.getElementById("scratch-timer");
@@ -705,8 +731,10 @@ function updateScratchTimer() {
     const now = Date.now();
     const last = gameState.lastScratchTime || 0;
     const next = last + SCRATCH_COOLDOWN;
-    if (now >= next) { el.textContent = "Ready!"; el.className = "text-[10px] text-emerald-400 font-bold mt-1"; }
-    else {
+    if (now >= next) {
+        el.textContent = "Ready!";
+        el.className = "text-[10px] text-emerald-400 font-bold mt-1";
+    } else {
         const left = next - now;
         const h = Math.floor(left / 3600000);
         const m = Math.floor((left % 3600000) / 60000);
@@ -781,7 +809,10 @@ function checkMissionReset() {
 function progressMission(type, amount) {
     let changed = false;
     (gameState.missions || []).forEach(m => {
-        if (m.type === type && m.progress < m.target) { m.progress = Math.min(m.target, m.progress + amount); changed = true; }
+        if (m.type === type && m.progress < m.target) {
+            m.progress = Math.min(m.target, m.progress + amount);
+            changed = true;
+        }
     });
     if (changed) renderMissions();
 }
@@ -844,16 +875,14 @@ function updateLuckyBoxTimer() {
     const next = (gameState.luckyBoxLastOpen || 0) + LUCKYBOX_COOLDOWN;
     if (now >= next) {
         el.textContent = "Ready to open!";
-        status.textContent = "Tap to Open!";
-        status.className = "mt-4 text-sm font-black text-emerald-400";
+        if (status) { status.textContent = "Tap to Open!"; status.className = "mt-4 text-sm font-black text-emerald-400"; }
     } else {
         const left = next - now;
         const h = Math.floor(left / 3600000);
         const m = Math.floor((left % 3600000) / 60000);
         const s = Math.floor((left % 60000) / 1000);
         el.textContent = `Next box in: ${h}h ${m}m ${s}s`;
-        status.textContent = "Come back later!";
-        status.className = "mt-4 text-sm font-black text-slate-500";
+        if (status) { status.textContent = "Come back later!"; status.className = "mt-4 text-sm font-black text-slate-500"; }
     }
 }
 
@@ -871,15 +900,22 @@ function openLuckyBox() {
     gameState.luckyBoxHistory.unshift({ rarity, prize, time: now });
     if (gameState.luckyBoxHistory.length > 20) gameState.luckyBoxHistory.pop();
     addCoins(prize, true);
-    document.getElementById("luckybox-result-icon").textContent = icon;
-    document.getElementById("luckybox-result-title").textContent = title;
-    document.getElementById("luckybox-result-text").textContent = `Tumhe mila: ${formatNum(prize)} Coins`;
-    document.getElementById("luckybox-modal").classList.remove("hidden");
+    const iconEl = document.getElementById("luckybox-result-icon");
+    const titleEl = document.getElementById("luckybox-result-title");
+    const textEl = document.getElementById("luckybox-result-text");
+    if (iconEl) iconEl.textContent = icon;
+    if (titleEl) titleEl.textContent = title;
+    if (textEl) textEl.textContent = `Tumhe mila: ${formatNum(prize)} Coins`;
+    const modal = document.getElementById("luckybox-modal");
+    if (modal) modal.classList.remove("hidden");
     if (rarity === "LEGENDARY" || rarity === "EPIC") confetti({ particleCount: 200, spread: 90 });
     saveUser(); renderLuckyBoxHistory(); updateLuckyBoxTimer();
 }
 
-function closeLuckyBoxModal() { document.getElementById("luckybox-modal").classList.add("hidden"); }
+function closeLuckyBoxModal() {
+    const m = document.getElementById("luckybox-modal");
+    if (m) m.classList.add("hidden");
+}
 
 function renderLuckyBoxHistory() {
     const container = document.getElementById("luckybox-history");
@@ -930,8 +966,10 @@ function initAvatars() {
 
 function selectAvatar(emoji) {
     gameState.avatar = emoji;
-    document.getElementById("header-avatar").textContent = emoji;
-    document.getElementById("avatar-display").textContent = emoji;
+    const hv = document.getElementById("header-avatar");
+    const ad = document.getElementById("avatar-display");
+    if (hv) hv.textContent = emoji;
+    if (ad) ad.textContent = emoji;
     initAvatars(); saveUser();
     showToast("Avatar set!", "success");
 }
@@ -1010,7 +1048,9 @@ function setFrame(id) {
     gameState.currentFrame = id;
     const frame = ALL_FRAMES.find(f => f.id === id);
     const avatarDisplay = document.getElementById("avatar-display");
-    if (avatarDisplay) avatarDisplay.className = `w-20 h-20 rounded-full bg-gradient-to-br from-cyan-400 to-purple-600 flex items-center justify-center text-4xl shadow-xl ${frame.class}`;
+    if (avatarDisplay && frame) {
+        avatarDisplay.className = `w-20 h-20 rounded-full bg-gradient-to-br from-cyan-400 to-purple-600 flex items-center justify-center text-4xl shadow-xl ${frame.class}`;
+    }
     showToast("Frame set!", "success");
     saveUser();
 }
@@ -1274,7 +1314,8 @@ function saveProfile() {
     const bio = document.getElementById("profile-bio").value.trim();
     if (name) gameState.username = name;
     gameState.bio = bio;
-    document.getElementById("profile-username").textContent = gameState.username;
+    const pu = document.getElementById("profile-username");
+    if (pu) pu.textContent = gameState.username;
     showToast("Profile saved!", "success");
     saveUser();
 }
@@ -1318,16 +1359,20 @@ function sendAllGifts() { showToast("Sab friends ko gift bheja!", "success"); }
 function startBattle(opponent = "Bot") {
     gameState.battleActive = true;
     gameState.battleMyTaps = 0; gameState.battleOppTaps = 0; gameState.battleTimer = 30;
-    document.getElementById("battle-modal").classList.remove("hidden");
-    document.getElementById("battle-my-taps").textContent = "0";
-    document.getElementById("battle-opp-taps").textContent = "0";
-    document.getElementById("battle-timer").textContent = "30";
+    const modal = document.getElementById("battle-modal");
+    if (modal) modal.classList.remove("hidden");
+    const mt = document.getElementById("battle-my-taps");
+    const ot = document.getElementById("battle-opp-taps");
+    const tt = document.getElementById("battle-timer");
+    if (mt) mt.textContent = "0";
+    if (ot) ot.textContent = "0";
+    if (tt) tt.textContent = "30";
     gameState.battleInterval = setInterval(() => {
         gameState.battleTimer--;
-        document.getElementById("battle-timer").textContent = gameState.battleTimer;
+        if (tt) tt.textContent = gameState.battleTimer;
         if (Math.random() < 0.7) {
             gameState.battleOppTaps += Math.floor(Math.random() * 3) + 1;
-            document.getElementById("battle-opp-taps").textContent = gameState.battleOppTaps;
+            if (ot) ot.textContent = gameState.battleOppTaps;
         }
         if (gameState.battleTimer <= 0) endBattle(opponent);
     }, 1000);
@@ -1336,7 +1381,8 @@ function startBattle(opponent = "Bot") {
 function battleTap() {
     if (!gameState.battleActive) return;
     gameState.battleMyTaps++;
-    document.getElementById("battle-my-taps").textContent = gameState.battleMyTaps;
+    const mt = document.getElementById("battle-my-taps");
+    if (mt) mt.textContent = gameState.battleMyTaps;
 }
 
 function endBattle(opponent) {
@@ -1353,7 +1399,8 @@ function endBattle(opponent) {
 function closeBattle() {
     clearInterval(gameState.battleInterval);
     gameState.battleActive = false;
-    document.getElementById("battle-modal").classList.add("hidden");
+    const m = document.getElementById("battle-modal");
+    if (m) m.classList.add("hidden");
 }
 
 // ===== CLAN =====
@@ -1385,17 +1432,24 @@ function renderClan() {
     if (!noClan || !info) return;
     if (gameState.clan) {
         noClan.classList.add("hidden"); info.classList.remove("hidden");
-        document.getElementById("clan-display-name").textContent = gameState.clan;
-        document.getElementById("clan-member-count").textContent = (gameState.clanMembers || []).length;
-        document.getElementById("clan-score").textContent = formatNum(gameState.clanScore || 0);
-        document.getElementById("clan-wins").textContent = gameState.clanWins || 0;
-        document.getElementById("clan-members-list").innerHTML = (gameState.clanMembers || []).map(m => `
-            <div class="flex items-center gap-2 bg-slate-800/60 p-2 rounded-lg">
-                <span class="text-lg">🚀</span>
-                <span class="text-xs font-bold">${m}</span>
-                ${m === currentUser ? '<span class="text-[9px] text-cyan-400 font-black">(You)</span>' : ""}
-            </div>
-        `).join("");
+        const dn = document.getElementById("clan-display-name");
+        const mc = document.getElementById("clan-member-count");
+        const cs = document.getElementById("clan-score");
+        const cw = document.getElementById("clan-wins");
+        if (dn) dn.textContent = gameState.clan;
+        if (mc) mc.textContent = (gameState.clanMembers || []).length;
+        if (cs) cs.textContent = formatNum(gameState.clanScore || 0);
+        if (cw) cw.textContent = gameState.clanWins || 0;
+        const ml = document.getElementById("clan-members-list");
+        if (ml) {
+            ml.innerHTML = (gameState.clanMembers || []).map(m => `
+                <div class="flex items-center gap-2 bg-slate-800/60 p-2 rounded-lg">
+                    <span class="text-lg">🚀</span>
+                    <span class="text-xs font-bold">${m}</span>
+                    ${m === currentUser ? '<span class="text-[9px] text-cyan-400 font-black">(You)</span>' : ""}
+                </div>
+            `).join("");
+        }
     } else {
         noClan.classList.remove("hidden"); info.classList.add("hidden");
     }
@@ -1464,7 +1518,7 @@ function renderReferralMilestones() {
         { count: 25, reward: 2000 }, { count: 50, reward: 5000 }
     ];
     container.innerHTML = milestones.map(m => {
-        const done = gameState.referrals >= m.count;
+        const done = (gameState.referrals || 0) >= m.count;
         return `
             <div class="flex justify-between items-center bg-slate-800/60 p-3 rounded-xl">
                 <div>
@@ -1496,12 +1550,18 @@ function renderTournament() {
 
 // ===== WITHDRAW =====
 function openWithdrawModal() {
-    document.getElementById("withdraw-curr-coins").textContent = formatNum(gameState.coins) + " Coins";
-    document.getElementById("withdraw-curr-pkr").textContent = (gameState.coins / COINS_PER_PKR).toFixed(2) + " PKR";
-    document.getElementById("withdraw-modal").classList.remove("hidden");
+    const wc = document.getElementById("withdraw-curr-coins");
+    const wp = document.getElementById("withdraw-curr-pkr");
+    if (wc) wc.textContent = formatNum(gameState.coins) + " Coins";
+    if (wp) wp.textContent = (gameState.coins / COINS_PER_PKR).toFixed(2) + " PKR";
+    const m = document.getElementById("withdraw-modal");
+    if (m) m.classList.remove("hidden");
 }
 
-function closeWithdrawModal() { document.getElementById("withdraw-modal").classList.add("hidden"); }
+function closeWithdrawModal() {
+    const m = document.getElementById("withdraw-modal");
+    if (m) m.classList.add("hidden");
+}
 
 function submitWithdrawal() {
     const pkr = parseInt(document.getElementById("withdraw-amount-select").value);
@@ -1542,13 +1602,20 @@ function renderHistory() {
 // ===== PAYMENT =====
 function showPaymentModal(name, level, price) {
     currentPayment = { name, level, price };
-    document.getElementById("pay-upgrade-name").textContent = name;
-    document.getElementById("pay-level").textContent = level;
-    document.getElementById("pay-amount").textContent = price + " PKR";
-    document.getElementById("payment-modal").classList.remove("hidden");
+    const pn = document.getElementById("pay-upgrade-name");
+    const pl = document.getElementById("pay-level");
+    const pa = document.getElementById("pay-amount");
+    if (pn) pn.textContent = name;
+    if (pl) pl.textContent = level;
+    if (pa) pa.textContent = price + " PKR";
+    const m = document.getElementById("payment-modal");
+    if (m) m.classList.remove("hidden");
 }
 
-function closePayment() { document.getElementById("payment-modal").classList.add("hidden"); }
+function closePayment() {
+    const m = document.getElementById("payment-modal");
+    if (m) m.classList.add("hidden");
+}
 
 function sendWhatsApp() {
     if (!currentPayment) return;
@@ -1673,14 +1740,16 @@ function submitBug() {
 
 // ===== WATCH & EARN =====
 function openWatchEarn() {
-    document.getElementById("watch-earn-modal").classList.remove("hidden");
+    const m = document.getElementById("watch-earn-modal");
+    if (m) m.classList.remove("hidden");
     updateAdStats();
     resetAdUI();
 }
 
 function closeWatchEarn() {
     if (adInterval) clearInterval(adInterval);
-    document.getElementById("watch-earn-modal").classList.add("hidden");
+    const m = document.getElementById("watch-earn-modal");
+    if (m) m.classList.add("hidden");
     resetAdUI();
 }
 
@@ -1707,10 +1776,11 @@ function startAd() {
     if (placeholder) placeholder.classList.add("hidden");
     if (countdown) countdown.classList.remove("hidden");
     let timeLeft = AD_DURATION;
-    document.getElementById("ad-timer-display").textContent = timeLeft;
+    const td = document.getElementById("ad-timer-display");
+    if (td) td.textContent = timeLeft;
     adInterval = setInterval(() => {
         timeLeft--;
-        document.getElementById("ad-timer-display").textContent = timeLeft;
+        if (td) td.textContent = timeLeft;
         if (timeLeft <= 0) {
             clearInterval(adInterval); adInterval = null;
             completeAd();
@@ -1749,10 +1819,11 @@ function showAutoAd() {
     if (!modal || !modal.classList.contains("hidden")) return;
     modal.classList.remove("hidden");
     let timeLeft = AUTO_AD_DURATION;
-    document.getElementById("auto-ad-timer").textContent = timeLeft;
+    const t = document.getElementById("auto-ad-timer");
+    if (t) t.textContent = timeLeft;
     autoAdInterval = setInterval(() => {
         timeLeft--;
-        document.getElementById("auto-ad-timer").textContent = timeLeft;
+        if (t) t.textContent = timeLeft;
         if (timeLeft <= 0) {
             clearInterval(autoAdInterval); autoAdInterval = null;
             finishAutoAd();
@@ -1817,15 +1888,4 @@ function doPrestige() {
     showToast(`👑 PRESTIGE ${gameState.prestige}! 10x Multiplier unlocked!`, "success");
     confetti({ particleCount: 300, spread: 120 });
     saveUser(); updateUI();
-}
-
-// ===== TERMS (Single Definition) =====
-function showTerms() { 
-    const m = document.getElementById("terms-modal");
-    if (m) m.classList.remove("hidden");
-}
-
-function closeTerms() { 
-    const m = document.getElementById("terms-modal");
-    if (m) m.classList.add("hidden");
 }
