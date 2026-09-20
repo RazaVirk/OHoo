@@ -1,0 +1,284 @@
+/* ===== OHOO TAP - ADMIN STYLES ===== */
+
+* {
+    -webkit-tap-highlight-color: transparent;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    overscroll-behavior: none;
+}
+
+/* ===== SCROLLBAR ===== */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+::-webkit-scrollbar-track {
+    background: #1e293b;
+    border-radius: 10px;
+}
+::-webkit-scrollbar-thumb {
+    background: #475569;
+    border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #64748b;
+}
+
+/* ===== TAB VIEWS ===== */
+.admin-tab-view {
+    display: none;
+}
+.admin-tab-view.active {
+    display: block;
+}
+
+/* ===== TAB BUTTONS ===== */
+.admin-tab {
+    background: transparent;
+    border: 1px solid transparent;
+    color: #94a3b8;
+    cursor: pointer;
+}
+.admin-tab:hover {
+    background: rgba(51, 65, 85, 0.5);
+    color: #e2e8f0;
+}
+.admin-tab.active {
+    background: rgba(34, 211, 238, 0.15);
+    border-color: rgba(34, 211, 238, 0.4);
+    color: #67e8f9;
+}
+
+/* ===== WITHDRAWAL FILTERS ===== */
+.wd-filter.active {
+    background: rgba(251, 191, 36, 0.2) !important;
+    border-color: rgba(251, 191, 36, 0.4) !important;
+    color: #fcd34d !important;
+}
+
+/* ===== TOAST ===== */
+@keyframes toast-in {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+.toast-item {
+    animation: toast-in 0.3s ease-out;
+    pointer-events: auto;
+}
+
+/* ===== MODAL BACKDROP ===== */
+#user-detail-modal:not(.hidden),
+#coins-modal:not(.hidden),
+#confirm-modal:not(.hidden) {
+    display: flex !important;
+}
+
+/* ===== SMOOTH TRANSITIONS ===== */
+button {
+    transition: all 0.15s ease;
+}
+
+/* ===== LOADING SPINNER ===== */
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+.spin {
+    animation: spin 1s linear infinite;
+}
+
+/* ===== FADE IN ===== */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+.fade-in {
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* ===== PULSE FOR NOTIFICATIONS ===== */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+.pulse {
+    animation: pulse 1.5s infinite;
+}
+
+/* ===== USER CARD HOVER ===== */
+.user-card {
+    transition: all 0.2s ease;
+}
+.user-card:hover {
+    border-color: rgba(34, 211, 238, 0.4);
+    transform: translateY(-2px);
+}
+
+/* ===== STATUS BADGES ===== */
+.badge-pending {
+    background: rgba(251, 191, 36, 0.2);
+    color: #fcd34d;
+    border: 1px solid rgba(251, 191, 36, 0.3);
+}
+.badge-completed {
+    background: rgba(16, 185, 129, 0.2);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+.badge-rejected {
+    background: rgba(244, 63, 94, 0.2);
+    color: #fb7185;
+    border: 1px solid rgba(244, 63, 94, 0.3);
+}
+.badge-premium {
+    background: rgba(168, 85, 247, 0.2);
+    color: #c084fc;
+    border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+/* ===== DASHBOARD STATS CARD HOVER ===== */
+.dash-card {
+    transition: all 0.2s ease;
+}
+.dash-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+/* ===== ADMIN PANEL HEADER ===== */
+header {
+    transition: all 0.2s ease;
+}
+
+/* ===== ACTION BUTTONS ===== */
+.action-btn {
+    transition: all 0.15s ease;
+}
+.action-btn:hover {
+    transform: scale(1.02);
+}
+.action-btn:active {
+    transform: scale(0.98);
+}
+
+/* ===== MOBILE OPTIMIZATION ===== */
+@media (max-width: 768px) {
+    .admin-tab {
+        font-size: 10px;
+        padding: 8px 12px;
+    }
+    
+    .text-3xl {
+        font-size: 1.5rem;
+    }
+    
+    .text-2xl {
+        font-size: 1.25rem;
+    }
+}
+
+@media (max-width: 640px) {
+    .admin-tab {
+        font-size: 9px;
+        padding: 6px 10px;
+    }
+    
+    .text-3xl {
+        font-size: 1.25rem;
+    }
+    
+    .p-5 {
+        padding: 1rem;
+    }
+}
+
+/* ===== ADMIN LOGIN SCREEN ===== */
+#admin-login-screen {
+    animation: fadeIn 0.5s ease-out;
+}
+
+/* ===== MODAL ANIMATION ===== */
+@keyframes modal-in {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+#user-detail-modal > div,
+#coins-modal > div,
+#confirm-modal > div {
+    animation: modal-in 0.2s ease-out;
+}
+
+/* ===== HOVER GLOW EFFECTS ===== */
+.glow-cyan:hover {
+    box-shadow: 0 0 20px rgba(34, 211, 238, 0.3);
+}
+
+.glow-amber:hover {
+    box-shadow: 0 0 20px rgba(251, 191, 36, 0.3);
+}
+
+.glow-purple:hover {
+    box-shadow: 0 0 20px rgba(168, 85, 247, 0.3);
+}
+
+.glow-emerald:hover {
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+}
+
+.glow-rose:hover {
+    box-shadow: 0 0 20px rgba(244, 63, 94, 0.3);
+}
+
+/* ===== TABLE ROW HOVER ===== */
+tr {
+    transition: background 0.15s ease;
+}
+
+/* ===== INPUT FOCUS STATES ===== */
+input:focus,
+textarea:focus,
+select:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.2);
+}
+
+/* ===== PREVENT TEXT SELECTION ON BUTTONS ===== */
+button {
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+/* ===== HIGH CONTRAST MODE ===== */
+@media (prefers-contrast: high) {
+    .admin-tab.active {
+        background: rgba(34, 211, 238, 0.3);
+        border-color: rgba(34, 211, 238, 0.8);
+    }
+}
