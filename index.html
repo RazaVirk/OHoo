@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>OhOO Tap - Ultimate Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: { extend: { colors: { slate: { 950: '#030712' } } } }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script type="module" src="firebase-config.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="dark min-h-screen flex flex-col justify-between overflow-x-hidden relative bg-slate-950 text-slate-100">
+
+    <!-- BG GLOWS -->
+    <div class="fixed top-[-10%] left-[-10%] w-[500px] h-[500px] bg-purple-600/15 rounded-full blur-[140px] pointer-events-none"></div>
+    <div class="fixed bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-cyan-600/15 rounded-full blur-[140px] pointer-events-none"></div>
+
+    <!-- TOAST -->
+    <div id="toast-container" class="fixed top-5 left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-2 pointer-events-none w-11/12 max-w-sm"></div>
+
+    <!-- COMBO OVERLAY -->
+    <div id="combo-overlay" class="fixed inset-0 pointer-events-none z-[60] hidden items-center justify-center">
+        <div id="combo-text" class="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-orange-500 drop-shadow-2xl animate-bounce"></div>
+    </div>
+
+    <!-- FRENZY BANNER -->
+    <div id="frenzy-banner" class="fixed top-20 left-1/2 -translate-x-1/2 z-[70] hidden">
+        <div class="bg-gradient-to-r from-orange-500 to-red-600 text-white font-black px-6 py-3 rounded-2xl shadow-2xl animate-pulse">
+            🔥 FRENZY MODE! 2X COINS! 🔥
+        </div>
+    </div>
+
+    <!-- LOGIN SCREEN -->
+    <div id="login-screen" class="fixed inset-0 bg-slate-950 z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-8 max-w-sm w-full space-y-4 shadow-2xl relative overflow-hidden">
+            <div class="absolute -top-12 -right-12 w-32 h-32 bg-yellow-500/10 rounded-full blur-2xl pointer-events-none"></div>
+            <div class="text-center">
+                <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-cyan-500 via-purple-500 to-yellow-400 p-[2px] mx-auto mb-3 shadow-lg">
+                    <div class="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-purple-300 to-yellow-300 text-3xl">O</div>
+                </div>
+                <h1 class="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-cyan-300 to-yellow-300">OHOO TAP</h1>
+                <p class="text-xs text-slate-400 mt-1">Khelo. Jeeto. Kamao. (450k Coins = 100 PKR)</p>
+            </div>
+            <div id="login-form">
+                <input type="text" id="login-username" placeholder="Username" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-sm text-white mb-2 focus:outline-none focus:border-cyan-500">
+                <input type="password" id="login-password" placeholder="Password" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-sm text-white mb-3 focus:outline-none focus:border-cyan-500">
+                <button onclick="login()" class="w-full bg-gradient-to-r from-yellow-400 to-amber-500 text-slate-950 font-black py-3 rounded-xl text-sm shadow-lg active:scale-95 transition">LOGIN</button>
+                <p class="text-xs text-center text-slate-400 mt-3">Account nahi hai? <button onclick="showSignup()" class="text-cyan-400 font-bold">Sign Up</button></p>
+            </div>
+            <div id="signup-form" class="hidden">
+                <input type="text" id="signup-username" placeholder="Username" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-sm text-white mb-2 focus:outline-none focus:border-emerald-500">
+                <input type="password" id="signup-password" placeholder="Password (min 6 chars)" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-sm text-white mb-2 focus:outline-none focus:border-emerald-500">
+                <input type="text" id="signup-referral" placeholder="Referral Code (optional)" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-sm text-white mb-3 focus:outline-none focus:border-purple-500">
+                <button onclick="signup()" class="w-full bg-gradient-to-r from-emerald-400 to-emerald-600 text-slate-950 font-black py-3 rounded-xl text-sm shadow-lg active:scale-95 transition">SIGN UP</button>
+                <p class="text-xs text-center text-slate-400 mt-3">Account hai? <button onclick="showLogin()" class="text-cyan-400 font-bold">Login</button></p>
+            </div>
+            <p class="text-[10px] text-center text-slate-500">Sign up karke tum <button onclick="showTerms()" class="text-cyan-400 underline">Terms & Policy</button> accept karte ho</p>
+        </div>
+    </div>
+
+    <!-- MAIN GAME -->
+    <div id="game-container" class="w-full max-w-7xl mx-auto min-h-screen flex flex-col justify-between p-2 lg:p-6 relative z-10 hidden">
+
+        <!-- HEADER -->
+        <header class="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-3 lg:p-4 backdrop-blur-md mb-4 flex flex-wrap items-center justify-between gap-3 shadow-xl">
+            <div class="flex items-center gap-3">
+                <div class="flex items-center gap-2">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 via-purple-500 to-yellow-400 p-[2px]">
+                        <div class="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-yellow-300 text-xl">O</div>
+                    </div>
+                    <span class="font-black text-xl lg:text-2xl tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-cyan-300 to-yellow-300">OHOO TAP</span>
+                </div>
+                <div class="bg-amber-500/10 border border-amber-500/30 px-3 py-1 rounded-full text-amber-400 text-xs font-bold flex items-center gap-1.5">
+                    <i class="fa-solid fa-fire text-amber-500 animate-pulse"></i>
+                    <span>STREAK: <span id="streak-days">1</span>d</span>
+                </div>
+                <div class="bg-purple-500/10 border border-purple-500/30 px-3 py-1 rounded-full text-purple-400 text-xs font-bold flex items-center gap-1.5">
+                    <i class="fa-solid fa-star"></i>
+                    <span>LVL: <span id="level-display">1</span>/100</span>
+                </div>
+                <div id="prestige-badge" class="hidden bg-pink-500/10 border border-pink-500/30 px-3 py-1 rounded-full text-pink-400 text-xs font-bold items-center gap-1.5">
+                    <i class="fa-solid fa-crown"></i>
+                    <span>P<span id="prestige-level">1</span></span>
+                </div>
+            </div>
+            <div class="flex items-center gap-3 flex-wrap">
+                <div class="bg-slate-800/60 border border-slate-700/60 px-3.5 py-1.5 rounded-xl flex items-center gap-2.5">
+                    <div class="w-7 h-7 rounded-full bg-yellow-500/20 text-yellow-400 flex items-center justify-center text-sm"><i class="fa-solid fa-coins"></i></div>
+                    <div>
+                        <p class="text-[9px] uppercase font-bold text-slate-400">Coins</p>
+                        <div class="flex items-baseline gap-1.5">
+                            <span id="header-balance" class="text-sm lg:text-base font-extrabold text-yellow-400 text-glow-yellow">0</span>
+                            <span class="text-[10px] text-emerald-400 font-bold">(<span id="header-pkr">0.00</span> PKR)</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-slate-800/60 border border-slate-700/60 px-3.5 py-1.5 rounded-xl flex items-center gap-2.5">
+                    <div class="w-7 h-7 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-sm"><i class="fa-solid fa-bolt"></i></div>
+                    <div>
+                        <p class="text-[9px] uppercase font-bold text-slate-400">Energy</p>
+                        <p id="header-energy" class="text-sm lg:text-base font-extrabold text-cyan-400 text-glow-cyan">5000 / 5000</p>
+                    </div>
+                </div>
+                <button onclick="toggleNotifications()" class="relative w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 flex items-center justify-center text-amber-400 transition">
+                    <i class="fa-solid fa-bell"></i>
+                    <span id="notif-badge" class="hidden absolute -top-1 -right-1 w-4 h-4 bg-rose-500 rounded-full text-[9px] font-black flex items-center justify-center">0</span>
+                </button>
+                <button onclick="switchTab('profile')" class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center text-xl shadow-lg hover:scale-105 active:scale-95 transition"><span id="header-avatar">🚀</span></button>
+                <button onclick="switchTab('referral')" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 flex items-center justify-center text-purple-400 transition"><i class="fa-solid fa-users"></i></button>
+                <button onclick="switchTab('leaderboard')" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 flex items-center justify-center text-amber-400 transition"><i class="fa-solid fa-trophy"></i></button>
+                <button onclick="toggleMusic()" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 flex items-center justify-center text-slate-300 transition"><i id="music-icon" class="fa-solid fa-volume-high text-cyan-400"></i></button>
+                <button onclick="toggleTheme()" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 flex items-center justify-center text-slate-300 transition"><i id="theme-icon" class="fa-solid fa-sun text-yellow-400"></i></button>
+                <button onclick="openWithdrawModal()" class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black px-3 py-2 rounded-xl text-xs flex items-center gap-1 shadow-lg transition active:scale-95"><i class="fa-solid fa-wallet"></i> WITHDRAW</button>
+                <button onclick="logout()" class="w-9 h-9 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 flex items-center justify-center text-rose-400 transition"><i class="fa-solid fa-right-from-bracket"></i></button>
+            </div>
+        </header>
+
+        <!-- NOTIFICATION CENTER -->
+        <div id="notification-center" class="hidden fixed top-20 right-4 w-80 max-h-96 overflow-y-auto bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl z-[80] p-4">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="font-black text-sm text-amber-400"><i class="fa-solid fa-bell"></i> Notifications</h3>
+                <button onclick="clearNotifications()" class="text-xs text-rose-400 font-bold">Clear All</button>
+            </div>
+            <div id="notification-list" class="space-y-2"></div>
+        </div>
+
+        <!-- WATCH & EARN BUTTON -->
+        <button onclick="openWatchEarn()" class="w-full bg-gradient-to-r from-rose-500 via-pink-500 to-red-500 text-white font-black py-3 rounded-2xl text-sm shadow-2xl mb-4 flex items-center justify-center gap-2 active:scale-98 transition neon-glow-purple">
+            <i class="fa-solid fa-circle-play text-lg"></i>
+            WATCH & EARN — 3000 COINS PER VIDEO (1 MIN)
+            <i class="fa-solid fa-circle-play text-lg"></i>
+        </button>
+
+        <!-- MAIN CONTENT -->
+        <div class="flex-1 flex flex-col lg:flex-row gap-5 mb-16 lg:mb-0">
+            
+            <!-- LEFT SIDEBAR -->
+            <div class="hidden lg:flex flex-col gap-2 w-52 shrink-0">
+                <button onclick="switchTab('tap')" class="nav-side-btn bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 p-3.5 rounded-xl flex items-center gap-3 font-bold text-sm transition" data-tab="tap"><i class="fa-solid fa-hand-pointer"></i> Tap Game</button>
+                <button onclick="switchTab('profile')" class="nav-side-btn hover:bg-slate-800/60 border border-transparent text-slate-400 p-3.5 rounded-xl flex items-center gap-3 font-bold text-sm transition" data-tab="profile"><i class="fa-solid fa-user"></i> Profile</button>
+                <button onclick="switchTab('upgrades')" class="nav-side-btn hover:bg-slate-800/60 border border-transparent text-slate-400 p-3.5 rounded-xl flex items-center gap-3 font-bold text-sm transition" data-tab="upgrades"><i class="fa-solid fa-rocket"></i> Upgrades</button>
+                <button onclick="switchTab('rewards')" class="nav-side-btn hover:bg-slate-800/60 border border-transparent text-slate-400 p-3.5 rounded-xl flex items-center gap-3 font-bold text-sm transition" data-tab="rewards"><i class="fa-solid fa-gift"></i> Rewards</button>
+                <button onclick="switchTab('missions')" class="nav-side-btn hover:bg-slate-800/60 border border-transparent text-slate-400 p-3.5 rounded-xl flex items-center gap-3 font-bold text-sm transition" data-tab="missions"><i class="fa-solid fa-list-check"></i> Missions</button>
+                <button onclick="switchTab('friends')" class="nav-side-btn hover:bg-slate-800/60 border border-transparent text-slate-400 p-3.5 rounded-xl flex items-center gap-3 font-bold text-sm transition" data-tab="friends"><i class="fa-solid fa-user-group"></i> Friends</button>
+                <button onclick="switchTab('clan')" class="nav-side-btn hover:bg-slate-800/60 border border-transparent text-slate-400 p-3.5 rounded-xl flex items-center gap-3 font-bold text-sm transition" data-tab="clan"><i class="fa-solid fa-shield-halved"></i> Clan</button>
+                <button onclick="switchTab('chat')" class="nav-side-btn hover:bg-slate-800/60 border border-transparent text-slate-400 p-3.5 rounded-xl flex items-center gap-3 font-bold text-sm transition" data-tab="chat"><i class="fa-solid fa-comments"></i> Chat</button>
+                <button onclick="switchTab('luckybox')" class="nav-side-btn hover:bg-slate-800/60 border border-transparent text-slate-400 p-3.5 rounded-xl flex items-center gap-3 font-bold text-sm transition" data-tab="luckybox"><i class="fa-solid fa-box-open"></i> Lucky Box</button>
+                <button onclick="switchTab('tournament')" class="nav-side-btn hover:bg-slate-800/60 border border-transparent text-slate-400 p-3.5 rounded-xl flex items-center gap-3 font-bold text-sm transition" data-tab="tournament"><i class="fa-solid fa-ranking-star"></i> Tournament</button>
+                <button onclick="switchTab('avatar-shop')" class="nav-side-btn hover:bg-slate-800/60 border border-transparent text-slate-400 p-3.5 rounded-xl flex items-center gap-3 font-bold text-sm transition" data-tab="avatar-shop"><i class="fa-solid fa-palette"></i> Avatar Shop</button>
+                <button onclick="switchTab('referral')" class="nav-side-btn hover:bg-slate-800/60 border border-transparent text-slate-400 p-3.5 rounded-xl flex items-center gap-3 font-bold text-sm transition" data-tab="referral"><i class="fa-solid fa-users"></i> Refer & Earn</button>
+                <button onclick="switchTab('premium')" class="nav-side-btn hover:bg-slate-800/60 border border-transparent text-slate-400 p-3.5 rounded-xl flex items-center gap-3 font-bold text-sm transition" data-tab="premium"><i class="fa-solid fa-crown"></i> Premium</button>
+                <button onclick="switchTab('leaderboard')" class="nav-side-btn hover:bg-slate-800/60 border border-transparent text-slate-400 p-3.5 rounded-xl flex items-center gap-3 font-bold text-sm transition" data-tab="leaderboard"><i class="fa-solid fa-trophy"></i> Leaderboard</button>
+                <button onclick="switchTab('shop')" class="nav-side-btn hover:bg-slate-800/60 border border-transparent text-slate-400 p-3.5 rounded-xl flex items-center gap-3 font-bold text-sm transition" data-tab="shop"><i class="fa-solid fa-store"></i> Shop</button>
+                <button onclick="switchTab('history')" class="nav-side-btn hover:bg-slate-800/60 border border-transparent text-slate-400 p-3.5 rounded-xl flex items-center gap-3 font-bold text-sm transition" data-tab="history"><i class="fa-solid fa-clock-rotate-left"></i> History</button>
+                <button onclick="switchTab('achievements')" class="nav-side-btn hover:bg-slate-800/60 border border-transparent text-slate-400 p-3.5 rounded-xl flex items-center gap-3 font-bold text-sm transition" data-tab="achievements"><i class="fa-solid fa-medal"></i> Achievements</button>
+                <button onclick="switchTab('news')" class="nav-side-btn hover:bg-slate-800/60 border border-transparent text-slate-400 p-3.5 rounded-xl flex items-center gap-3 font-bold text-sm transition" data-tab="news"><i class="fa-solid fa-newspaper"></i> News</button>
+                <button onclick="switchTab('support')" class="nav-side-btn hover:bg-slate-800/60 border border-transparent text-slate-400 p-3.5 rounded-xl flex items-center gap-3 font-bold text-sm transition" data-tab="support"><i class="fa-solid fa-headset"></i> Support</button>
+                <button onclick="openWithdrawModal()" class="hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 p-3.5 rounded-xl flex items-center gap-3 font-bold text-sm transition mt-2"><i class="fa-solid fa-money-bill-transfer"></i> Withdraw Cash</button>
+                <button onclick="showTerms()" class="hover:bg-slate-800/60 text-slate-400 p-3.5 rounded-xl flex items-center gap-3 font-bold text-sm transition"><i class="fa-solid fa-file-contract"></i> Terms & Policy</button>
+            </div>
+
+            <!-- CENTER CONTENT -->
+            <div class="flex-1 bg-slate-900/60 border border-slate-800 rounded-2xl p-4 lg:p-6 min-h-[520px] relative overflow-hidden backdrop-blur-sm flex flex-col justify-between">
+
+                <!-- TAB: TAP -->
+                <div id="tab-tap" class="tab-view active h-full flex-col items-center justify-between gap-4">
+                    <div class="text-center">
+                        <span class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Rate: 450,000 Coins = 100 PKR</span>
+                        <h2 class="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-400 to-yellow-500" id="tap-coins-display">0 COINS</h2>
+                        <p class="text-xs font-extrabold text-emerald-400">≈ <span id="tap-pkr-display">0.00</span> PKR</p>
+                        <p id="per-tap-badge" class="text-xs font-black text-cyan-400 mt-1">Per Tap: <span id="per-tap-value">1</span> coins</p>
+                        <div id="combo-display" class="hidden mt-2">
+                            <span class="text-sm font-black text-orange-400">COMBO: <span id="combo-count">0</span>x</span>
+                        </div>
+                    </div>
+                    <div class="my-auto relative flex items-center justify-center py-6 w-full max-w-xs">
+                        <div class="absolute w-64 h-64 rounded-full bg-cyan-500/10 blur-3xl pointer-events-none"></div>
+                        <div class="absolute w-56 h-56 rounded-full border border-cyan-500/30 pointer-events-none animate-pulse"></div>
+                        <div id="mascot-btn" onclick="triggerTap(event)" ontouchstart="handleMultiTouch(event)" ontouchmove="handleMultiTouch(event)" class="mascot-bounce active:scale-95 w-48 h-48 rounded-full bg-gradient-to-b from-cyan-400 via-blue-600 to-purple-600 p-1.5 cursor-pointer shadow-2xl relative flex items-center justify-center select-none">
+                            <div class="w-full h-full bg-slate-950 rounded-full flex flex-col items-center justify-center border-4 border-slate-900 relative overflow-hidden">
+                                <i class="fa-solid fa-ghost text-6xl text-cyan-300"></i>
+                                <i class="fa-solid fa-crown text-yellow-400 text-2xl absolute top-3"></i>
+                                <span class="text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-wider">TAP ME!</span>
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="triggerTap(event)" ontouchstart="handleMultiTouch(event)" ontouchmove="handleMultiTouch(event)" class="w-full bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 text-slate-950 font-black py-4 rounded-2xl text-base tracking-widest uppercase shadow-lg neon-glow-yellow transition active:scale-98 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-bolt-lightning"></i> TAP TO EARN COINS! <i class="fa-solid fa-bolt-lightning"></i>
+                    </button>
+
+                    <div class="w-full grid grid-cols-4 gap-2 mt-2">
+                        <button onclick="activatePowerUp('double')" class="powerup-btn bg-purple-500/20 border border-purple-500/40 text-purple-300 p-2 rounded-xl text-[10px] font-black flex flex-col items-center gap-1 active:scale-95 transition">
+                            <i class="fa-solid fa-2 text-lg"></i> 2X COINS
+                            <span class="text-[8px] opacity-70">10K</span>
+                            <span id="pu-double-time" class="text-[8px]"></span>
+                        </button>
+                        <button onclick="activatePowerUp('infinite')" class="powerup-btn bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 p-2 rounded-xl text-[10px] font-black flex flex-col items-center gap-1 active:scale-95 transition">
+                            <i class="fa-solid fa-infinity text-lg"></i> INF ENERGY
+                            <span class="text-[8px] opacity-70">15K</span>
+                            <span id="pu-infinite-time" class="text-[8px]"></span>
+                        </button>
+                        <button onclick="activatePowerUp('autotap')" class="powerup-btn bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 p-2 rounded-xl text-[10px] font-black flex flex-col items-center gap-1 active:scale-95 transition">
+                            <i class="fa-solid fa-robot text-lg"></i> AUTO TAP
+                            <span class="text-[8px] opacity-70">20K</span>
+                            <span id="pu-autotap-time" class="text-[8px]"></span>
+                        </button>
+                        <button onclick="activatePowerUp('megatap')" class="powerup-btn bg-orange-500/20 border border-orange-500/40 text-orange-300 p-2 rounded-xl text-[10px] font-black flex flex-col items-center gap-1 active:scale-95 transition">
+                            <i class="fa-solid fa-hand-fist text-lg"></i> MEGA TAP
+                            <span class="text-[8px] opacity-70">25K</span>
+                            <span id="pu-megatap-time" class="text-[8px]"></span>
+                        </button>
+                    </div>
+
+                    <div class="w-full grid grid-cols-3 gap-2 mt-2">
+                        <div class="bg-slate-900/80 border border-slate-800 p-3 rounded-2xl flex flex-col items-center gap-1 text-center">
+                            <p class="text-[10px] uppercase font-bold text-slate-400">Daily Bonus</p>
+                            <button onclick="claimDailyBonus()" class="bg-emerald-500 text-slate-950 font-black px-2 py-1.5 rounded-xl text-xs w-full active:scale-95 transition">CLAIM 1k</button>
+                        </div>
+                        <div class="bg-slate-900/80 border border-slate-800 p-3 rounded-2xl flex flex-col items-center gap-1 text-center">
+                            <p class="text-[10px] uppercase font-bold text-slate-400">Refill Energy</p>
+                            <button onclick="watchAd('energy')" class="bg-cyan-500 text-slate-950 font-black px-2 py-1.5 rounded-xl text-xs w-full active:scale-95 transition">WATCH AD</button>
+                        </div>
+                        <div class="bg-slate-900/80 border border-slate-800 p-3 rounded-2xl flex flex-col items-center gap-1 text-center">
+                            <p class="text-[10px] uppercase font-bold text-slate-400">Free +5k Coins</p>
+                            <button onclick="watchAd('coins')" class="bg-purple-500 text-white font-black px-2 py-1.5 rounded-xl text-xs w-full active:scale-95 transition">+5000 COINS</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB: PROFILE -->
+                <div id="tab-profile" class="tab-view h-full flex-col gap-4 overflow-y-auto pr-1">
+                    <h2 class="text-xl font-black text-cyan-300 flex items-center gap-2"><i class="fa-solid fa-user"></i> Player Profile</h2>
+                    <div class="bg-slate-900/90 border border-slate-800 p-5 rounded-2xl flex flex-col items-center gap-3">
+                        <div id="avatar-display" class="w-20 h-20 rounded-full bg-gradient-to-br from-cyan-400 to-purple-600 flex items-center justify-center text-4xl shadow-xl border-2 border-cyan-300">🚀</div>
+                        <p class="text-lg font-black text-yellow-400" id="profile-username">Player</p>
+                        <input type="text" id="profile-name" placeholder="Apna Naam" class="bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-white text-center w-full max-w-xs focus:outline-none focus:border-cyan-500">
+                        <textarea id="profile-bio" placeholder="Bio..." maxlength="100" class="bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-white text-center w-full max-w-xs resize-none focus:outline-none focus:border-cyan-500" rows="2"></textarea>
+                        <button onclick="saveProfile()" class="bg-emerald-500 text-slate-950 font-black px-6 py-2 rounded-xl text-sm active:scale-95 transition">SAVE PROFILE</button>
+                    </div>
+                    <div class="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl">
+                        <h3 class="text-xs font-black text-slate-300 uppercase mb-3"><i class="fa-solid fa-chart-line"></i> Detailed Stats</h3>
+                        <div class="grid grid-cols-2 lg:grid-cols-3 gap-2 text-xs">
+                            <div class="bg-slate-800/60 p-2 rounded-lg"><p class="text-slate-400 text-[10px]">Total Taps</p><p class="font-black text-cyan-400" id="stat-total-taps">0</p></div>
+                            <div class="bg-slate-800/60 p-2 rounded-lg"><p class="text-slate-400 text-[10px]">Lifetime Coins</p><p class="font-black text-yellow-400" id="stat-lifetime-coins">0</p></div>
+                            <div class="bg-slate-800/60 p-2 rounded-lg"><p class="text-slate-400 text-[10px]">Best Combo</p><p class="font-black text-orange-400" id="stat-best-combo">0</p></div>
+                            <div class="bg-slate-800/60 p-2 rounded-lg"><p class="text-slate-400 text-[10px]">Time Played</p><p class="font-black text-purple-400" id="stat-time-played">0m</p></div>
+                            <div class="bg-slate-800/60 p-2 rounded-lg"><p class="text-slate-400 text-[10px]">Coins/Hour</p><p class="font-black text-emerald-400" id="stat-coins-hour">0</p></div>
+                            <div class="bg-slate-800/60 p-2 rounded-lg"><p class="text-slate-400 text-[10px]">Daily Avg</p><p class="font-black text-pink-400" id="stat-daily-avg">0</p></div>
+                        </div>
+                    </div>
+                    <div class="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl">
+                        <h3 class="text-xs font-black text-slate-300 uppercase mb-2">Choose Avatar</h3>
+                        <div class="grid grid-cols-6 gap-2" id="avatar-list"></div>
+                    </div>
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                        <div class="bg-slate-900/80 border border-slate-800 p-3.5 rounded-2xl text-center"><p class="text-[10px] uppercase text-slate-400 font-bold">Coins</p><p class="text-lg font-black text-yellow-400" id="profile-coins">0</p></div>
+                        <div class="bg-slate-900/80 border border-slate-800 p-3.5 rounded-2xl text-center"><p class="text-[10px] uppercase text-slate-400 font-bold">PKR</p><p class="text-lg font-black text-emerald-400" id="profile-pkr">0.00</p></div>
+                        <div class="bg-slate-900/80 border border-slate-800 p-3.5 rounded-2xl text-center"><p class="text-[10px] uppercase text-slate-400 font-bold">Taps</p><p class="text-lg font-black text-cyan-400" id="profile-taps">0</p></div>
+                        <div class="bg-slate-900/80 border border-slate-800 p-3.5 rounded-2xl text-center"><p class="text-[10px] uppercase text-slate-400 font-bold">Bot Lvl</p><p class="text-lg font-black text-purple-400" id="profile-autobot">0</p></div>
+                    </div>
+                    <div class="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl">
+                        <h3 class="text-xs font-black text-slate-300 uppercase mb-3"><i class="fa-solid fa-road"></i> Level Roadmap</h3>
+                        <div class="flex gap-2 overflow-x-auto pb-2" id="roadmap-container"></div>
+                    </div>
+                    <div class="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl mt-3">
+                        <h3 class="text-xs font-black text-slate-300 uppercase mb-2">Level Bonus History</h3>
+                        <div class="space-y-2" id="level-bonus-container"></div>
+                    </div>
+                    <button onclick="openWithdrawModal()" class="w-full bg-emerald-500 text-slate-950 font-black py-3 rounded-xl text-sm flex items-center justify-center gap-2 active:scale-95 transition">
+                        <i class="fa-solid fa-wallet"></i> WITHDRAW CASH (200 - 2000 PKR)
+                    </button>
+                </div>
+
+                <!-- TAB: UPGRADES -->
+                <div id="tab-upgrades" class="tab-view h-full flex-col gap-3 overflow-y-auto pr-1">
+                    <h2 class="text-xl font-black text-purple-300 flex items-center gap-2"><i class="fa-solid fa-rocket"></i> PKR Upgrades (100 Levels)</h2>
+                    <p class="text-xs text-slate-400">Payment ke baad admin WhatsApp pe verify karke level upgrade karega.</p>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4" id="upgrades-container"></div>
+                </div>
+
+                <!-- TAB: REWARDS -->
+                <div id="tab-rewards" class="tab-view h-full flex-col gap-4 overflow-y-auto pr-1">
+                    <h2 class="text-xl font-black text-yellow-300 flex items-center gap-2"><i class="fa-solid fa-gift"></i> Rewards</h2>
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                        <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-2xl space-y-3 text-center">
+                            <i class="fa-solid fa-dharmachakra text-4xl text-purple-400"></i>
+                            <div>
+                                <h3 class="font-black text-sm">Spin Wheel</h3>
+                                <p class="text-[10px] text-slate-400">Jeeto 10,000 Coins!</p>
+                                <p id="spin-timer" class="text-[10px] text-slate-400 font-bold mt-1">Ready!</p>
+                            </div>
+                            <button onclick="spinWheel()" class="w-full bg-purple-500 text-white font-black py-2.5 rounded-xl text-xs active:scale-95 transition">SPIN NOW</button>
+                        </div>
+                        <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-2xl space-y-3 text-center">
+                            <i class="fa-solid fa-ticket text-4xl text-emerald-400"></i>
+                            <div>
+                                <h3 class="font-black text-sm">Scratch Card</h3>
+                                <p class="text-[10px] text-slate-400">Jeeto 10,000 Coins!</p>
+                                <p id="scratch-timer" class="text-[10px] text-slate-400 font-bold mt-1">Ready!</p>
+                            </div>
+                            <button onclick="openScratchModal()" class="w-full bg-emerald-500 text-slate-950 font-black py-2.5 rounded-xl text-xs active:scale-95 transition">SCRATCH CARD</button>
+                        </div>
+                        <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-2xl space-y-3 text-center">
+                            <i class="fa-solid fa-clover text-4xl text-cyan-400"></i>
+                            <div><h3 class="font-black text-sm">Lucky Draw</h3><p class="text-[10px] text-slate-400">Random lucky reward!</p></div>
+                            <button onclick="luckyDraw()" class="w-full bg-cyan-500 text-slate-950 font-black py-2.5 rounded-xl text-xs active:scale-95 transition">TRY LUCKY DRAW</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB: MISSIONS -->
+                <div id="tab-missions" class="tab-view h-full flex-col gap-4 overflow-y-auto pr-1">
+                    <h2 class="text-xl font-black text-emerald-300 flex items-center gap-2"><i class="fa-solid fa-list-check"></i> Daily Missions</h2>
+                    <p class="text-xs text-slate-400">Har 24 hours mein reset hoti hain. Jaldi complete karo!</p>
+                    <div class="space-y-3" id="missions-container"></div>
+                    <div class="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl mt-4">
+                        <h3 class="text-sm font-black text-purple-300 mb-2"><i class="fa-solid fa-trophy"></i> Mission Streak</h3>
+                        <p class="text-xs text-slate-400">7 din lagatar complete karo → 100,000 coins bonus!</p>
+                        <div class="flex gap-2 mt-3" id="mission-streak-days"></div>
+                    </div>
+                </div>
+
+                <!-- TAB: FRIENDS -->
+                <div id="tab-friends" class="tab-view h-full flex-col gap-4 overflow-y-auto pr-1">
+                    <h2 class="text-xl font-black text-cyan-300 flex items-center gap-2"><i class="fa-solid fa-user-group"></i> Friends</h2>
+                    <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-2xl">
+                        <h3 class="text-sm font-black mb-2">Add Friend</h3>
+                        <div class="flex gap-2">
+                            <input type="text" id="friend-search" placeholder="Username search..." class="flex-1 bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:outline-none focus:border-cyan-500">
+                            <button onclick="searchFriend()" class="bg-cyan-500 text-slate-950 font-black px-4 rounded-xl text-xs">SEARCH</button>
+                        </div>
+                    </div>
+                    <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-2xl">
+                        <h3 class="text-sm font-black mb-2"><i class="fa-solid fa-users"></i> My Friends (<span id="friends-count">0</span>)</h3>
+                        <div class="space-y-2" id="friends-list"></div>
+                    </div>
+                    <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-2xl">
+                        <h3 class="text-sm font-black mb-2"><i class="fa-solid fa-swords"></i> 1v1 Tap Battle</h3>
+                        <p class="text-xs text-slate-400 mb-2">Friend ko challenge karo! 30 sec mein zyada taps = winner</p>
+                        <button onclick="startBattle()" class="w-full bg-rose-500 text-white font-black py-3 rounded-xl text-xs">START BATTLE</button>
+                    </div>
+                    <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-2xl">
+                        <h3 class="text-sm font-black mb-2"><i class="fa-solid fa-gift"></i> Daily Gifts</h3>
+                        <p class="text-xs text-slate-400 mb-2">Har friend ko 500 energy gift bhejo!</p>
+                        <button onclick="sendAllGifts()" class="w-full bg-emerald-500 text-slate-950 font-black py-3 rounded-xl text-xs">SEND ALL GIFTS</button>
+                    </div>
+                </div>
+
+                <!-- TAB: CLAN -->
+                <div id="tab-clan" class="tab-view h-full flex-col gap-4 overflow-y-auto pr-1">
+                    <h2 class="text-xl font-black text-purple-300 flex items-center gap-2"><i class="fa-solid fa-shield-halved"></i> Clan</h2>
+                    <div id="clan-no-clan" class="bg-slate-900/90 border border-slate-800 p-5 rounded-2xl space-y-3">
+                        <h3 class="font-black text-center">Clan Join karo ya banao!</h3>
+                        <input type="text" id="clan-name-input" placeholder="Clan Name" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-purple-500">
+                        <button onclick="createClan()" class="w-full bg-purple-500 text-white font-black py-3 rounded-xl text-xs">CREATE CLAN (50,000 Coins)</button>
+                        <button onclick="showClanList()" class="w-full bg-slate-700 text-white font-black py-3 rounded-xl text-xs">BROWSE CLANS</button>
+                    </div>
+                    <div id="clan-info" class="hidden space-y-3">
+                        <div class="bg-gradient-to-r from-purple-900/50 to-cyan-900/50 border border-purple-500/30 p-5 rounded-2xl text-center">
+                            <div class="w-16 h-16 rounded-full bg-purple-500 mx-auto flex items-center justify-center text-3xl mb-2"><i class="fa-solid fa-shield-halved text-white"></i></div>
+                            <h3 class="text-lg font-black text-purple-300" id="clan-display-name">Clan Name</h3>
+                            <p class="text-xs text-slate-400">Members: <span id="clan-member-count">1</span>/50</p>
+                            <div class="grid grid-cols-3 gap-2 mt-3">
+                                <div class="bg-slate-900/60 p-2 rounded-lg"><p class="text-[10px] text-slate-400">Rank</p><p class="font-black text-yellow-400" id="clan-rank">#1</p></div>
+                                <div class="bg-slate-900/60 p-2 rounded-lg"><p class="text-[10px] text-slate-400">Score</p><p class="font-black text-cyan-400" id="clan-score">0</p></div>
+                                <div class="bg-slate-900/60 p-2 rounded-lg"><p class="text-[10px] text-slate-400">Wins</p><p class="font-black text-emerald-400" id="clan-wins">0</p></div>
+                            </div>
+                            <button onclick="leaveClan()" class="mt-3 text-xs text-rose-400 font-bold">Leave Clan</button>
+                        </div>
+                        <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-2xl">
+                            <h3 class="text-sm font-black mb-2"><i class="fa-solid fa-swords"></i> Clan Wars</h3>
+                            <p class="text-xs text-slate-400 mb-2">Weekly war! Winning clan gets 500,000 coins each member.</p>
+                            <button onclick="joinClanWar()" class="w-full bg-rose-500 text-white font-black py-3 rounded-xl text-xs">JOIN WAR</button>
+                        </div>
+                        <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-2xl">
+                            <h3 class="text-sm font-black mb-2">Members</h3>
+                            <div class="space-y-2" id="clan-members-list"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB: CHAT -->
+                <div id="tab-chat" class="tab-view h-full flex-col gap-3 overflow-hidden pr-1">
+                    <h2 class="text-xl font-black text-cyan-300 flex items-center gap-2"><i class="fa-solid fa-comments"></i> Chat</h2>
+                    <div class="flex gap-2">
+                        <button onclick="switchChat('global')" class="chat-tab-btn active flex-1 bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 py-2 rounded-xl text-xs font-black" data-chat="global">GLOBAL</button>
+                        <button onclick="switchChat('clan')" class="chat-tab-btn flex-1 bg-slate-800 border border-slate-700 text-slate-400 py-2 rounded-xl text-xs font-black" data-chat="clan">CLAN</button>
+                        <button onclick="switchChat('private')" class="chat-tab-btn flex-1 bg-slate-800 border border-slate-700 text-slate-400 py-2 rounded-xl text-xs font-black" data-chat="private">PRIVATE</button>
+                    </div>
+                    <div id="chat-messages" class="flex-1 bg-slate-900/90 border border-slate-800 rounded-2xl p-3 overflow-y-auto space-y-2 min-h-[300px]"></div>
+                    <div class="flex gap-2">
+                        <input type="text" id="chat-input" placeholder="Type message..." maxlength="200" class="flex-1 bg-slate-800 border border-slate-700 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-cyan-500" onkeypress="if(event.key==='Enter')sendChat()">
+                        <button onclick="sendChat()" class="bg-cyan-500 text-slate-950 font-black px-4 rounded-xl"><i class="fa-solid fa-paper-plane"></i></button>
+                    </div>
+                    <div class="flex gap-1 overflow-x-auto">
+                        <button onclick="sendQuickEmoji('😀')" class="text-xl">😀</button>
+                        <button onclick="sendQuickEmoji('🔥')" class="text-xl">🔥</button>
+                        <button onclick="sendQuickEmoji('💰')" class="text-xl">💰</button>
+                        <button onclick="sendQuickEmoji('🚀')" class="text-xl">🚀</button>
+                        <button onclick="sendQuickEmoji('❤️')" class="text-xl">❤️</button>
+                        <button onclick="sendQuickEmoji('😂')" class="text-xl">😂</button>
+                    </div>
+                </div>
+
+                <!-- TAB: LUCKY BOX -->
+                <div id="tab-luckybox" class="tab-view h-full flex-col gap-4 overflow-y-auto pr-1">
+                    <h2 class="text-xl font-black text-yellow-300 flex items-center gap-2"><i class="fa-solid fa-box-open"></i> Lucky Box</h2>
+                    <p class="text-xs text-slate-400">Har 4 hours mein free box milta hai!</p>
+                    <div class="text-center py-6">
+                        <div id="lucky-box" onclick="openLuckyBox()" class="inline-block cursor-pointer animate-bounce">
+                            <div class="w-40 h-40 bg-gradient-to-br from-yellow-400 via-orange-500 to-red-500 rounded-3xl flex items-center justify-center text-7xl shadow-2xl border-4 border-yellow-300">
+                                <i class="fa-solid fa-gift text-white"></i>
+                            </div>
+                        </div>
+                        <p class="mt-4 text-sm font-black text-yellow-400" id="luckybox-status">Tap to Open!</p>
+                        <p class="text-xs text-slate-400" id="luckybox-timer">Next box in: 4h 0m</p>
+                    </div>
+                    <div class="grid grid-cols-4 gap-2">
+                        <div class="bg-slate-900/90 border border-slate-800 p-3 rounded-2xl text-center"><p class="text-2xl">📦</p><p class="text-[10px] font-black text-slate-300 mt-1">COMMON</p></div>
+                        <div class="bg-slate-900/90 border border-blue-500/30 p-3 rounded-2xl text-center"><p class="text-2xl">💎</p><p class="text-[10px] font-black text-blue-400 mt-1">RARE</p></div>
+                        <div class="bg-slate-900/90 border border-purple-500/30 p-3 rounded-2xl text-center"><p class="text-2xl">🔮</p><p class="text-[10px] font-black text-purple-400 mt-1">EPIC</p></div>
+                        <div class="bg-slate-900/90 border border-yellow-500/30 p-3 rounded-2xl text-center"><p class="text-2xl">👑</p><p class="text-[10px] font-black text-yellow-400 mt-1">LEGENDARY</p></div>
+                    </div>
+                    <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-2xl">
+                        <h3 class="text-sm font-black mb-2">Box History</h3>
+                        <div class="space-y-2" id="luckybox-history"></div>
+                    </div>
+                </div>
+
+                <!-- TAB: TOURNAMENT -->
+                <div id="tab-tournament" class="tab-view h-full flex-col gap-4 overflow-y-auto pr-1">
+                    <h2 class="text-xl font-black text-amber-300 flex items-center gap-2"><i class="fa-solid fa-ranking-star"></i> Weekly Tournament</h2>
+                    <div class="bg-gradient-to-r from-amber-900/50 to-orange-900/50 border border-amber-500/30 p-5 rounded-2xl">
+                        <h3 class="font-black text-lg text-amber-300">🏆 Weekly Contest #1</h3>
+                        <p class="text-xs text-slate-300 mt-1">Entry: 10,000 Coins • Prize: 500 PKR</p>
+                        <div class="grid grid-cols-3 gap-2 mt-3">
+                            <div class="bg-slate-900/60 p-2 rounded-lg text-center"><p class="text-[10px] text-slate-400">Players</p><p class="font-black text-cyan-400" id="tourney-players">0</p></div>
+                            <div class="bg-slate-900/60 p-2 rounded-lg text-center"><p class="text-[10px] text-slate-400">Pool</p><p class="font-black text-yellow-400" id="tourney-pool">0 PKR</p></div>
+                            <div class="bg-slate-900/60 p-2 rounded-lg text-center"><p class="text-[10px] text-slate-400">Ends In</p><p class="font-black text-rose-400" id="tourney-timer">7d</p></div>
+                        </div>
+                        <button onclick="joinTournament()" class="w-full mt-3 bg-amber-500 text-slate-950 font-black py-3 rounded-xl text-xs">JOIN TOURNAMENT</button>
+                    </div>
+                    <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-2xl">
+                        <h3 class="text-sm font-black mb-2">Top 10 Players</h3>
+                        <div class="space-y-2" id="tourney-leaderboard"></div>
+                    </div>
+                </div>
+
+                <!-- TAB: AVATAR SHOP -->
+                <div id="tab-avatar-shop" class="tab-view h-full flex-col gap-4 overflow-y-auto pr-1">
+                    <h2 class="text-xl font-black text-pink-300 flex items-center gap-2"><i class="fa-solid fa-palette"></i> Avatar Shop</h2>
+                    <div class="flex gap-2 overflow-x-auto pb-2">
+                        <button onclick="filterAvatars('all')" class="avatar-filter active bg-pink-500/20 border border-pink-500/40 text-pink-300 px-4 py-2 rounded-xl text-xs font-black whitespace-nowrap">ALL</button>
+                        <button onclick="filterAvatars('common')" class="avatar-filter bg-slate-800 border border-slate-700 text-slate-400 px-4 py-2 rounded-xl text-xs font-black whitespace-nowrap">COMMON</button>
+                        <button onclick="filterAvatars('rare')" class="avatar-filter bg-slate-800 border border-slate-700 text-slate-400 px-4 py-2 rounded-xl text-xs font-black whitespace-nowrap">RARE</button>
+                        <button onclick="filterAvatars('epic')" class="avatar-filter bg-slate-800 border border-slate-700 text-slate-400 px-4 py-2 rounded-xl text-xs font-black whitespace-nowrap">EPIC</button>
+                        <button onclick="filterAvatars('legendary')" class="avatar-filter bg-slate-800 border border-slate-700 text-slate-400 px-4 py-2 rounded-xl text-xs font-black whitespace-nowrap">LEGENDARY</button>
+                        <button onclick="filterAvatars('seasonal')" class="avatar-filter bg-slate-800 border border-slate-700 text-slate-400 px-4 py-2 rounded-xl text-xs font-black whitespace-nowrap">SEASONAL</button>
+                    </div>
+                    <div class="grid grid-cols-3 lg:grid-cols-5 gap-3" id="avatar-shop-container"></div>
+                    <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-2xl mt-3">
+                        <h3 class="text-sm font-black mb-3"><i class="fa-solid fa-circle-nodes"></i> Avatar Frames</h3>
+                        <div class="grid grid-cols-4 gap-3" id="frame-shop-container"></div>
+                    </div>
+                    <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-2xl">
+                        <h3 class="text-sm font-black mb-3"><i class="fa-solid fa-wand-magic-sparkles"></i> Tap Effects</h3>
+                        <div class="grid grid-cols-4 gap-3" id="tap-effect-container"></div>
+                    </div>
+                </div>
+
+                <!-- TAB: REFERRAL -->
+                <div id="tab-referral" class="tab-view h-full flex-col gap-4 overflow-y-auto pr-1">
+                    <h2 class="text-xl font-black text-purple-300 flex items-center gap-2"><i class="fa-solid fa-users"></i> Refer & Earn</h2>
+                    <div class="bg-slate-900/90 border border-slate-800 p-5 rounded-2xl text-center space-y-3">
+                        <div class="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-3xl mx-auto shadow-xl"><i class="fa-solid fa-gift text-white"></i></div>
+                        <h3 class="font-black text-lg text-purple-300">Dost ko bulao, 50,000 Coins pao!</h3>
+                        <p class="text-xs text-slate-400">Har dost ke join karne pe tumhe 50,000 coins milenge. Dost ko bhi 25,000 coins milenge!</p>
+                        <div class="bg-slate-800 rounded-xl p-3 border border-slate-700">
+                            <p class="text-[10px] text-slate-400 uppercase font-bold mb-1">Tumhara Referral Code</p>
+                            <p class="text-lg font-black text-cyan-400 tracking-wider" id="referral-code-display">OHOO123</p>
+                        </div>
+                        <button onclick="copyReferralLink()" class="w-full bg-gradient-to-r from-purple-500 to-pink-600 text-white font-black py-3 rounded-xl text-sm active:scale-95 transition"><i class="fa-solid fa-share-nodes"></i> SHARE REFERRAL LINK</button>
+                    </div>
+                    <div class="grid grid-cols-3 gap-3">
+                        <div class="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl text-center"><p class="text-[10px] uppercase text-slate-400 font-bold">Total Refs</p><p class="text-xl font-black text-purple-400" id="refs-total">0</p></div>
+                        <div class="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl text-center"><p class="text-[10px] uppercase text-slate-400 font-bold">Active</p><p class="text-xl font-black text-cyan-400" id="refs-active">0</p></div>
+                        <div class="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl text-center"><p class="text-[10px] uppercase text-slate-400 font-bold">Earned</p><p class="text-xl font-black text-yellow-400" id="refs-earned">0</p></div>
+                    </div>
+                    <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-2xl">
+                        <h3 class="text-sm font-black mb-3"><i class="fa-solid fa-trophy"></i> Referral Milestones</h3>
+                        <div class="space-y-2" id="ref-milestones"></div>
+                    </div>
+                </div>
+
+                <!-- TAB: PREMIUM -->
+                <div id="tab-premium" class="tab-view h-full flex-col gap-4 overflow-y-auto pr-1">
+                    <h2 class="text-xl font-black text-yellow-300 flex items-center gap-2"><i class="fa-solid fa-crown"></i> Premium Membership</h2>
+                    <div class="bg-gradient-to-br from-yellow-900/40 via-amber-900/30 to-orange-900/40 border border-yellow-500/40 p-6 rounded-2xl text-center space-y-3">
+                        <div class="w-20 h-20 rounded-full bg-gradient-to-br from-yellow-400 to-orange-600 mx-auto flex items-center justify-center text-4xl shadow-2xl">👑</div>
+                        <h3 class="text-2xl font-black text-yellow-300">OHOO PREMIUM</h3>
+                        <p class="text-sm text-yellow-100">Sirf 500 PKR / month</p>
+                        <div class="bg-slate-900/60 rounded-xl p-4 text-left space-y-2">
+                            <p class="text-xs text-yellow-200"><i class="fa-solid fa-check text-emerald-400"></i> <strong>10x Coins</strong> forever</p>
+                            <p class="text-xs text-yellow-200"><i class="fa-solid fa-check text-emerald-400"></i> No Ads</p>
+                            <p class="text-xs text-yellow-200"><i class="fa-solid fa-check text-emerald-400"></i> Exclusive Premium Avatar</p>
+                            <p class="text-xs text-yellow-200"><i class="fa-solid fa-check text-emerald-400"></i> Priority Withdrawal (1 hour)</p>
+                            <p class="text-xs text-yellow-200"><i class="fa-solid fa-check text-emerald-400"></i> 2x Energy Regen</p>
+                            <p class="text-xs text-yellow-200"><i class="fa-solid fa-check text-emerald-400"></i> Premium Badge</p>
+                        </div>
+                        <button onclick="buyPremium()" class="w-full bg-gradient-to-r from-yellow-400 to-orange-500 text-slate-950 font-black py-4 rounded-xl text-sm">BUY PREMIUM - 500 PKR</button>
+                    </div>
+                    <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-2xl">
+                        <h3 class="text-sm font-black mb-2">Premium Status</h3>
+                        <p class="text-xs text-slate-400" id="premium-status">Not Active</p>
+                    </div>
+                </div>
+
+                <!-- TAB: LEADERBOARD -->
+                <div id="tab-leaderboard" class="tab-view h-full flex-col gap-4 overflow-y-auto pr-1">
+                    <h2 class="text-xl font-black text-amber-300 flex items-center gap-2"><i class="fa-solid fa-trophy"></i> Global Leaderboard</h2>
+                    <div class="flex gap-2">
+                        <button onclick="switchLeaderboard('coins')" class="lb-tab active bg-amber-500/20 border border-amber-500/40 text-amber-300 px-4 py-2 rounded-xl text-xs font-black" data-lb="coins">COINS</button>
+                        <button onclick="switchLeaderboard('taps')" class="lb-tab bg-slate-800 border border-slate-700 text-slate-400 px-4 py-2 rounded-xl text-xs font-black" data-lb="taps">TAPS</button>
+                        <button onclick="switchLeaderboard('referrals')" class="lb-tab bg-slate-800 border border-slate-700 text-slate-400 px-4 py-2 rounded-xl text-xs font-black" data-lb="referrals">REFERRALS</button>
+                    </div>
+                    <div class="space-y-2" id="leaderboard-container"></div>
+                </div>
+
+                <!-- TAB: SHOP -->
+                <div id="tab-shop" class="tab-view h-full flex-col gap-4 overflow-y-auto pr-1">
+                    <h2 class="text-xl font-black text-emerald-300 flex items-center gap-2"><i class="fa-solid fa-store"></i> Shop</h2>
+                    <div class="grid grid-cols-2 lg:grid-cols-3 gap-3" id="shop-container"></div>
+                </div>
+
+                <!-- TAB: HISTORY -->
+                <div id="tab-history" class="tab-view h-full flex-col gap-4 overflow-y-auto pr-1">
+                    <h2 class="text-xl font-black text-cyan-300 flex items-center gap-2"><i class="fa-solid fa-clock-rotate-left"></i> Withdraw History</h2>
+                    <div class="space-y-2" id="history-container"></div>
+                </div>
+
+                <!-- TAB: ACHIEVEMENTS -->
+                <div id="tab-achievements" class="tab-view h-full flex-col gap-4 overflow-y-auto pr-1">
+                    <h2 class="text-xl font-black text-yellow-300 flex items-center gap-2"><i class="fa-solid fa-medal"></i> Achievements</h2>
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3" id="achievements-container"></div>
+                </div>
+
+                <!-- TAB: NEWS -->
+                <div id="tab-news" class="tab-view h-full flex-col gap-4 overflow-y-auto pr-1">
+                    <h2 class="text-xl font-black text-cyan-300 flex items-center gap-2"><i class="fa-solid fa-newspaper"></i> News & Updates</h2>
+                    <div class="space-y-3" id="news-container"></div>
+                </div>
+
+                <!-- TAB: SUPPORT -->
+                <div id="tab-support" class="tab-view h-full flex-col gap-4 overflow-y-auto pr-1">
+                    <h2 class="text-xl font-black text-emerald-300 flex items-center gap-2"><i class="fa-solid fa-headset"></i> Support & Help</h2>
+                    <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-2xl">
+                        <h3 class="text-sm font-black mb-2">Contact Admin</h3>
+                        <a href="https://wa.me/923270450914" target="_blank" class="block w-full bg-emerald-500 text-slate-950 font-black py-3 rounded-xl text-xs text-center"><i class="fa-brands fa-whatsapp"></i> WhatsApp Admin</a>
+                    </div>
+                    <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-2xl">
+                        <h3 class="text-sm font-black mb-3">FAQ</h3>
+                        <div class="space-y-2" id="faq-container"></div>
+                    </div>
+                    <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-2xl">
+                        <h3 class="text-sm font-black mb-2">Report Bug</h3>
+                        <textarea id="bug-report" placeholder="Bug describe karo..." class="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-sm text-white resize-none focus:outline-none focus:border-rose-500" rows="3"></textarea>
+                        <button onclick="submitBug()" class="w-full mt-2 bg-rose-500 text-white font-black py-3 rounded-xl text-xs">SUBMIT BUG</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MOBILE BOTTOM NAV -->
+        <nav class="lg:hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-slate-950/95 border-t border-slate-800/80 backdrop-blur-lg p-2 z-40">
+            <div class="grid grid-cols-5 gap-1 text-center">
+                <button onclick="switchTab('profile')" class="mb-nav-btn flex flex-col items-center py-1.5 text-slate-400" data-tab="profile"><i class="fa-solid fa-user text-sm"></i><span class="text-[9px] font-bold mt-1">PROFILE</span></button>
+                <button onclick="switchTab('upgrades')" class="mb-nav-btn flex flex-col items-center py-1.5 text-slate-400" data-tab="upgrades"><i class="fa-solid fa-rocket text-sm"></i><span class="text-[9px] font-bold mt-1">UPGRADE</span></button>
+                <button onclick="switchTab('tap')" class="mb-nav-btn active flex flex-col items-center py-1.5 text-cyan-400" data-tab="tap"><i class="fa-solid fa-hand-pointer text-sm"></i><span class="text-[9px] font-bold mt-1">TAP</span></button>
+                <button onclick="switchTab('rewards')" class="mb-nav-btn flex flex-col items-center py-1.5 text-slate-400" data-tab="rewards"><i class="fa-solid fa-gift text-sm"></i><span class="text-[9px] font-bold mt-1">REWARD</span></button>
+                <button onclick="switchTab('referral')" class="mb-nav-btn flex flex-col items-center py-1.5 text-slate-400" data-tab="referral"><i class="fa-solid fa-users text-sm"></i><span class="text-[9px] font-bold mt-1">REFER</span></button>
+            </div>
+        </nav>
+    </div>
+
+    <!-- PAYMENT MODAL -->
+    <div id="payment-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-2xl">
+            <h2 class="text-xl font-black text-yellow-400 text-center"><i class="fa-solid fa-receipt"></i> Payment</h2>
+            <div class="bg-slate-800/80 rounded-xl p-4 space-y-1.5 border border-slate-700 text-xs">
+                <div class="flex justify-between"><span class="text-slate-400">Upgrade:</span> <span class="font-black text-cyan-400" id="pay-upgrade-name">Auto-Bot</span></div>
+                <div class="flex justify-between"><span class="text-slate-400">Level:</span> <span class="font-black text-purple-400" id="pay-level">1</span></div>
+                <div class="flex justify-between"><span class="text-slate-400">Price:</span> <span class="font-black text-yellow-400 text-sm" id="pay-amount">100 PKR</span></div>
+            </div>
+            <div class="bg-slate-800/80 rounded-xl p-4 space-y-2 border border-slate-700">
+                <p class="text-xs text-slate-400 font-bold uppercase">Send To:</p>
+                <p class="text-xs text-white"><span class="text-cyan-400 font-black">Easypaisa:</span> 0327-0450914</p>
+                <p class="text-xs text-white"><span class="text-cyan-400 font-black">UBL:</span> 0885311430769</p>
+                <p class="text-xs text-white"><span class="text-cyan-400 font-black">Title:</span> Ali Raza</p>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="sendWhatsApp()" class="flex-1 bg-emerald-500 text-slate-950 font-black py-3 rounded-xl text-xs active:scale-95 transition"><i class="fa-brands fa-whatsapp"></i> WhatsApp</button>
+                <button onclick="closePayment()" class="flex-1 bg-slate-700 text-slate-200 font-black py-3 rounded-xl text-xs transition">CANCEL</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- WITHDRAW MODAL -->
+    <div id="withdraw-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <h2 class="text-xl font-black text-emerald-400 text-center"><i class="fa-solid fa-money-bill-transfer"></i> Withdraw</h2>
+            <div class="bg-slate-800/80 p-3 rounded-xl border border-slate-700 text-xs space-y-1">
+                <div class="flex justify-between"><span>Balance:</span> <span class="font-bold text-yellow-400" id="withdraw-curr-coins">0 Coins</span></div>
+                <div class="flex justify-between"><span>PKR:</span> <span class="font-bold text-emerald-400" id="withdraw-curr-pkr">0.00 PKR</span></div>
+                <p class="text-[10px] text-slate-400 mt-1">* Rate: 450,000 Coins = 100 PKR</p>
+                <p class="text-[10px] text-emerald-400 mt-1">* Premium: 1 hour | Normal: 24 hours</p>
+            </div>
+            <div class="space-y-2 text-xs">
+                <label class="font-bold text-slate-300">Amount (PKR):</label>
+                <select id="withdraw-amount-select" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white font-bold focus:outline-none focus:border-emerald-500">
+                    <option value="200">200 PKR (900,000 Coins)</option>
+                    <option value="500">500 PKR (2,250,000 Coins)</option>
+                    <option value="1000">1000 PKR (4,500,000 Coins)</option>
+                    <option value="1500">1500 PKR (6,750,000 Coins)</option>
+                    <option value="2000">2000 PKR (9,000,000 Coins)</option>
+                </select>
+                <label class="font-bold text-slate-300 block mt-2">Method:</label>
+                <select id="withdraw-method" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:border-emerald-500">
+                    <option value="Easypaisa">Easypaisa</option>
+                    <option value="JazzCash">JazzCash</option>
+                    <option value="SadaPay">SadaPay</option>
+                    <option value="NayaPay">NayaPay</option>
+                    <option value="Meezan">Meezan Bank</option>
+                    <option value="UBL">UBL Bank</option>
+                    <option value="USDT">USDT (Crypto)</option>
+                </select>
+                <label class="font-bold text-slate-300 block mt-2">Account Name:</label>
+                <input type="text" id="withdraw-account-name" placeholder="Ali Raza" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:border-emerald-500">
+                <label class="font-bold text-slate-300 block mt-2">Account Number:</label>
+                <input type="text" id="withdraw-account-number" placeholder="03270450914" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:border-emerald-500">
+            </div>
+            <div class="flex gap-2 pt-2">
+                <button onclick="submitWithdrawal()" class="flex-1 bg-emerald-500 text-slate-950 font-black py-3 rounded-xl text-xs active:scale-95 transition">SUBMIT</button>
+                <button onclick="closeWithdrawModal()" class="flex-1 bg-slate-700 text-slate-200 font-black py-3 rounded-xl text-xs transition">CANCEL</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRATCH MODAL -->
+    <div id="scratch-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-sm w-full space-y-4 text-center">
+            <h2 class="text-xl font-black text-emerald-400"><i class="fa-solid fa-ticket"></i> Scratch & Win</h2>
+            <p class="text-xs text-slate-400">Card ko scratch karo!</p>
+            <div class="relative w-64 h-32 mx-auto rounded-xl overflow-hidden shadow-2xl border-2 border-emerald-500/40">
+                <div id="scratch-prize-bg" class="absolute inset-0 bg-slate-950 flex flex-col items-center justify-center text-yellow-400 font-black text-xl">
+                    <span id="scratch-prize-text">+10,000 COINS</span>
+                </div>
+                <canvas id="scratch-canvas" class="scratch-canvas absolute inset-0 w-full h-full"></canvas>
+            </div>
+            <button onclick="closeScratchModal()" class="w-full bg-emerald-500 text-slate-950 font-black py-3 rounded-xl text-xs transition">CLAIM & CLOSE</button>
+        </div>
+    </div>
+
+    <!-- LUCKY BOX MODAL -->
+    <div id="luckybox-modal" class="fixed inset-0 bg-black/90 backdrop-blur-md z-50 hidden items-center justify-center p-4">
+        <div class="bg-slate-900 border border-yellow-500/40 rounded-2xl p-8 max-w-sm w-full text-center space-y-4">
+            <div id="luckybox-result-icon" class="text-7xl">🎁</div>
+            <h2 class="text-2xl font-black text-yellow-400" id="luckybox-result-title">LEGENDARY!</h2>
+            <p class="text-sm text-slate-300" id="luckybox-result-text">Tumhe mila: 50,000 Coins</p>
+            <button onclick="closeLuckyBoxModal()" class="w-full bg-yellow-500 text-slate-950 font-black py-3 rounded-xl text-sm">AWESOME!</button>
+        </div>
+    </div>
+
+    <!-- WATCH & EARN MODAL -->
+    <div id="watch-earn-modal" class="fixed inset-0 bg-black/90 backdrop-blur-md z-50 hidden items-center justify-center p-4">
+        <div class="bg-slate-900 border border-rose-500/40 rounded-2xl p-6 max-w-md w-full text-center space-y-4">
+            <h2 class="text-2xl font-black text-rose-400"><i class="fa-solid fa-circle-play"></i> Watch & Earn</h2>
+            <p class="text-xs text-slate-400">1 minute ka video dekho, 3000 coins pao!</p>
+            <div class="bg-slate-800 rounded-2xl p-6 space-y-3">
+                <div class="w-full aspect-video bg-black rounded-xl flex items-center justify-center relative overflow-hidden">
+                    <div id="ad-video-placeholder" class="text-center">
+                        <i class="fa-solid fa-play-circle text-6xl text-rose-500"></i>
+                        <p class="text-xs text-slate-400 mt-2">Video Player</p>
+                    </div>
+                    <div id="ad-countdown" class="hidden absolute inset-0 bg-black/80 flex flex-col items-center justify-center">
+                        <p class="text-5xl font-black text-white" id="ad-timer-display">60</p>
+                        <p class="text-xs text-slate-400 mt-2">seconds left</p>
+                    </div>
+                </div>
+                <div class="flex justify-between text-xs"><span class="text-slate-400">Videos Watched:</span><span class="font-black text-cyan-400" id="ad-videos-watched">0</span></div>
+                <div class="flex justify-between text-xs"><span class="text-slate-400">Total Earned:</span><span class="font-black text-yellow-400" id="ad-total-earned">0</span></div>
+            </div>
+            <button id="ad-start-btn" onclick="startAd()" class="w-full bg-gradient-to-r from-rose-500 to-red-600 text-white font-black py-4 rounded-xl text-sm active:scale-95 transition">
+                <i class="fa-solid fa-play"></i> START AD (3000 COINS)
+            </button>
+            <button onclick="closeWatchEarn()" class="text-xs text-slate-400">Close</button>
+        </div>
+    </div>
+
+    <!-- AUTO AD MODAL -->
+    <div id="auto-ad-modal" class="fixed inset-0 bg-black/95 backdrop-blur-md z-[90] hidden items-center justify-center p-4">
+        <div class="bg-slate-900 border border-amber-500/40 rounded-2xl p-6 max-w-md w-full text-center space-y-4">
+            <h2 class="text-xl font-black text-amber-400"><i class="fa-solid fa-video"></i> Auto Ad</h2>
+            <p class="text-xs text-slate-400">5 sec ka ad — 1000 coins pao!</p>
+            <div class="bg-slate-800 rounded-2xl p-8">
+                <p class="text-6xl font-black text-white" id="auto-ad-timer">5</p>
+                <p class="text-xs text-slate-400 mt-2">seconds</p>
+            </div>
+            <button onclick="skipAutoAd()" class="text-xs text-slate-400 hover:text-rose-400">Skip Ad (No Reward)</button>
+        </div>
+    </div>
+
+    <!-- BATTLE MODAL -->
+    <div id="battle-modal" class="fixed inset-0 bg-black/90 backdrop-blur-md z-50 hidden items-center justify-center p-4">
+        <div class="bg-slate-900 border border-rose-500/40 rounded-2xl p-6 max-w-md w-full text-center space-y-4">
+            <h2 class="text-2xl font-black text-rose-400">⚔️ 1v1 Battle</h2>
+            <p class="text-xs text-slate-400">30 seconds! Sabse zyada taps = winner</p>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="bg-slate-800 p-4 rounded-xl"><p class="text-xs text-slate-400">YOU</p><p class="text-3xl font-black text-cyan-400" id="battle-my-taps">0</p></div>
+                <div class="bg-slate-800 p-4 rounded-xl"><p class="text-xs text-slate-400">OPPONENT</p><p class="text-3xl font-black text-rose-400" id="battle-opp-taps">0</p></div>
+            </div>
+            <div class="text-3xl font-black text-yellow-400" id="battle-timer">30</div>
+            <button id="battle-tap-btn" onclick="battleTap()" class="w-full bg-gradient-to-r from-rose-500 to-pink-600 text-white font-black py-6 rounded-2xl text-xl active:scale-95 transition">TAP! TAP! TAP!</button>
+            <button onclick="closeBattle()" class="text-xs text-slate-400">Close</button>
+        </div>
+    </div>
+
+    <!-- TERMS MODAL -->
+    <div id="terms-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-lg w-full max-h-[80vh] overflow-y-auto space-y-4">
+            <h2 class="text-xl font-black text-yellow-400 text-center">📜 Terms & Policy</h2>
+            <div class="text-xs text-slate-300 space-y-3">
+                <p><strong class="text-cyan-400">1. Rate:</strong> 450,000 Coins = 100 PKR.</p>
+                <p><strong class="text-cyan-400">2. Levels:</strong> Level 1 = 450,000 coins. Har level pe 50,000 coins barhega. Max Level 100.</p>
+                <p><strong class="text-cyan-400">3. Level Bonus:</strong> Har level complete karne pe 200 PKR bonus milega.</p>
+                <p><strong class="text-cyan-400">4. Withdrawal:</strong> Min 200 PKR (900k Coins), Max 2000 PKR (9M Coins).</p>
+                <p><strong class="text-cyan-400">5. Withdrawal Time:</strong> Premium = 1 hour, Normal = 24 hours.</p>
+                <p><strong class="text-cyan-400">6. Premium:</strong> 10x coins, 500 PKR/month.</p>
+                <p><strong class="text-cyan-400">7. Offline Mode:</strong> Minimum 10,000 coins earn honge offline.</p>
+                <p><strong class="text-cyan-400">8. Owner:</strong> Ali Raza (0327-0450914)</p>
+            </div>
+            <button onclick="closeTerms()" class="w-full bg-emerald-500 text-slate-950 font-black py-3 rounded-xl text-sm transition">ACCEPT & CLOSE</button>
+        </div>
+    </div>
+
+    <script type="module" src="script.js"></script>
+</body>
+</html>
